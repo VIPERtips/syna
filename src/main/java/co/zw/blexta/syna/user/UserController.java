@@ -1,7 +1,8 @@
 package co.zw.blexta.syna.user;
 
+import co.zw.blexta.syna.common.exception.BadRequestException;
 import co.zw.blexta.syna.common.response.ApiResponse;
-import co.zw.blexta.syna.common.util.CurrentUserUtils;
+import co.zw.blexta.syna.filter.ClerkService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,35 +14,58 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final ClerkService clerkService;
 
+    // -------------------------------
+    // Public Signup
+    // -------------------------------
     @Operation(
-            summary = "Create or fetch current user",
-            description = "Creates a new user if it does not exist, otherwise returns the existing user"
+            summary = "Signup a new user",
+            description = "Creates a new user record in the database after Clerk verification. Public endpoint, no authentication required."
     )
-    @PostMapping("/current")
-    public ResponseEntity<ApiResponse<UserDto>> createOrGetCurrentUser(@RequestBody UserDto dto) {
-        Long clerkUserId = CurrentUserUtils.getCurrentClerkUserId();
-        dto.setClerkUserId(clerkUserId);
-
-        UserDto user = userService.createUser(dto);
-
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<UserDto>> signup(@RequestBody UserDto dto) {
+        UserDto savedUser = userService.createUser(dto);
         return ResponseEntity.ok(
                 ApiResponse.<UserDto>builder()
                         .success(true)
-                        .message("User created or retrieved successfully")
+                        .message("User created successfully")
+                        .data(savedUser)
+                        .build()
+        );
+    }
+
+    // -------------------------------
+    // Public Login
+    // -------------------------------
+    @Operation(
+            summary = "Login user",
+            description = "Verifies Clerk token, returns the corresponding user record. Public endpoint, no authentication required."
+    )
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<UserDto>> login(@RequestHeader("Authorization") String bearerToken) {
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(bearerToken);
+        UserDto user = userService.getUserByClerkId(clerkUserId)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+        return ResponseEntity.ok(
+                ApiResponse.<UserDto>builder()
+                        .success(true)
+                        .message("Login successful")
                         .data(user)
                         .build()
         );
     }
 
+    // -------------------------------
+    // Authenticated endpoints
+    // -------------------------------
     @Operation(
             summary = "Get current user",
-            description = "Fetches the currently authenticated Clerk user"
+            description = "Retrieves the currently authenticated user based on the Clerk token provided in Authorization header."
     )
     @GetMapping("/current")
-    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser() {
-        Long clerkUserId = CurrentUserUtils.getCurrentClerkUserId();
-
+    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(@RequestHeader("Authorization") String token) {
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
         return userService.getUserByClerkId(clerkUserId)
                 .map(user -> ResponseEntity.ok(
                         ApiResponse.<UserDto>builder()
@@ -60,13 +84,14 @@ public class UserController {
 
     @Operation(
             summary = "Update current user",
-            description = "Updates the currently authenticated user's profile. Only provided fields will be updated."
+            description = "Updates fields of the currently authenticated user. Only provided fields will be updated."
     )
     @PatchMapping("/current")
-    public ResponseEntity<ApiResponse<UserDto>> updateCurrentUser(@RequestBody UserDto dto) {
-        Long clerkUserId = CurrentUserUtils.getCurrentClerkUserId();
+    public ResponseEntity<ApiResponse<UserDto>> updateCurrentUser(
+            @RequestHeader("Authorization") String token,
+            @RequestBody UserDto dto) {
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
         UserDto updated = userService.updateUser(clerkUserId, dto);
-
         return ResponseEntity.ok(
                 ApiResponse.<UserDto>builder()
                         .success(true)
@@ -77,40 +102,13 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Get user by ID",
-            description = "Fetches a user by their database ID"
-    )
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id)
-                .map(user -> ResponseEntity.ok(
-                        ApiResponse.<UserDto>builder()
-                                .success(true)
-                                .message("User retrieved successfully")
-                                .data(user)
-                                .build()
-                ))
-                .orElse(ResponseEntity.status(404).body(
-                        ApiResponse.<UserDto>builder()
-                                .success(false)
-                                .message("User not found")
-                                .build()
-                ));
-    }
-
-    @Operation(
             summary = "Delete current user",
-            description = "Deletes the currently authenticated user's account"
+            description = "Deletes the currently authenticated user account."
     )
     @DeleteMapping("/current")
-    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser() {
-        Long clerkUserId = CurrentUserUtils.getCurrentClerkUserId();
-
-        userService.getUserByClerkId(clerkUserId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
-
+    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(@RequestHeader("Authorization") String token) {
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
         userService.deleteUser(clerkUserId);
-
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()
                         .success(true)

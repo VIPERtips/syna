@@ -6,11 +6,11 @@ public interface UserService {
 
     UserDto createUser(UserDto userDto);
 
-    Optional<UserDto> getUserByClerkId(Long clerkUserId);
+    Optional<UserDto> getUserByClerkId(String clerkUserId);
 
     Optional<UserDto> getUserById(Long id);
 
-    UserDto updateUser(Long clerkUserId, UserDto userDto);
-    void deleteUser(Long clerkUserId);
+    UserDto updateUser(String clerkUserId, UserDto userDto);
+    void deleteUser(String clerkUserId);
 
 }
