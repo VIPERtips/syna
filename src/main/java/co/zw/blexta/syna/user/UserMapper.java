@@ -1,6 +1,5 @@
 package co.zw.blexta.syna.user;
 
-import co.zw.blexta.syna.user.User;
 
 public class UserMapper {
 

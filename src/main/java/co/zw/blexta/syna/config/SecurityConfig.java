@@ -40,7 +40,7 @@ public class SecurityConfig {
                                 "/error",
                                 "/api/users/**"
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
 
                 // disable default login forms
