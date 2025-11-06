@@ -64,8 +64,7 @@ public class UserController {
             description = "Retrieves the currently authenticated user based on the Clerk token provided in Authorization header."
     )
     @GetMapping("/current")
-    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(@RequestHeader("Authorization") String token) {
-        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
+    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(@RequestParam String clerkUserId) {
         return userService.getUserByClerkId(clerkUserId)
                 .map(user -> ResponseEntity.ok(
                         ApiResponse.<UserDto>builder()
