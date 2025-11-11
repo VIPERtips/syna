@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 @Builder
 public class AvailabilityDTO {
     private Long id;
-    private Long doctorId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String recurring;

@@ -16,12 +16,12 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     private final DoctorRepository doctorRepository;
 
     @Override
-    public AvailabilityDTO createAvailability(AvailabilityDTO dto) {
-        var doctor = doctorRepository.findById(dto.getDoctorId())
+    public AvailabilityDTO createAvailability(AvailabilityDTO dto, Long doctorId) {
+        var doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
         var existing = availabilityRepository
-                .findByDoctor_DoctorIdAndStartTimeAndEndTime(dto.getDoctorId(), dto.getStartTime(), dto.getEndTime())
+                .findByDoctor_DoctorIdAndStartTimeAndEndTime(doctorId, dto.getStartTime(), dto.getEndTime())
                 .orElse(null);
 
         if (existing != null) {
@@ -76,7 +76,6 @@ public class AvailabilityServiceImpl implements AvailabilityService {
     private AvailabilityDTO toDTO(Availability entity) {
         return AvailabilityDTO.builder()
                 .id(entity.getId())
-                .doctorId(entity.getDoctor().getDoctorId())
                 .startTime(entity.getStartTime())
                 .endTime(entity.getEndTime())
                 .recurring(entity.getRecurring().name())
