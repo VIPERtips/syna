@@ -43,10 +43,13 @@ public class UserController {
             description = "Verifies Clerk token, returns the corresponding user record. Public endpoint, no authentication required."
     )
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserDto>> login(@RequestHeader("Authorization") String bearerToken) {
-        String clerkUserId = clerkService.verifyTokenAndGetUserId(bearerToken);
+    public ResponseEntity<ApiResponse<UserDto>> login(@RequestHeader("Authorization") String token) throws Exception {
+
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
+
         UserDto user = userService.getUserByClerkId(clerkUserId)
                 .orElseThrow(() -> new BadRequestException("User not found"));
+
         return ResponseEntity.ok(
                 ApiResponse.<UserDto>builder()
                         .success(true)
@@ -55,7 +58,6 @@ public class UserController {
                         .build()
         );
     }
-
     // -------------------------------
     // Authenticated endpoints
     // -------------------------------
@@ -89,8 +91,8 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDto>> updateCurrentUser(
             @RequestHeader("Authorization") String token,
             @RequestBody UserDto dto) {
-        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
-        UserDto updated = userService.updateUser(clerkUserId, dto);
+       // String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
+        UserDto updated = userService.updateUser(null, dto);
         return ResponseEntity.ok(
                 ApiResponse.<UserDto>builder()
                         .success(true)
@@ -105,7 +107,7 @@ public class UserController {
             description = "Deletes the currently authenticated user account."
     )
     @DeleteMapping("/current")
-    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<ApiResponse<Void>> deleteCurrentUser(@RequestHeader("Authorization") String token) throws Exception {
         String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
         userService.deleteUser(clerkUserId);
         return ResponseEntity.ok(

@@ -25,6 +25,15 @@ public class DoctorServiceImpl implements DoctorService {
     private final UserRepository userRepository;
     private final FileUploadService fileUploadService;
 
+    public Optional<DoctorDto> getDoctorByUserId(String clerkUserId) {
+        User user = userRepository.findByClerkUserId(clerkUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return doctorRepository.findByUser(user)
+                .map(DoctorMapper::toDto);
+    }
+
+
     @Override
     public DoctorDto registerDoctor(DoctorDto dto, Long userId, MultipartFile image) throws IOException {
         doctorRepository.findByUserId(userId)
@@ -77,6 +86,25 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setAccountStatus(Doctor.AccountStatus.BLOCKED);
         doctorRepository.save(doctor);
     }
+
+    @Override
+    public DoctorDto approveDoctor(Long docId) {
+        Doctor doctor = doctorRepository.findById(docId)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found for id " + docId));
+
+        if (doctor.getAccountStatus() == Doctor.AccountStatus.APPROVED) {
+            throw new ConflictException("Doctor is already approved");
+        }
+        doctor.setAccountStatus(Doctor.AccountStatus.APPROVED);
+        doctorRepository.save(doctor);
+
+        User user = doctor.getUser();
+        user.setRole(User.Role.DOCTOR);
+        userRepository.save(user);
+
+        return DoctorMapper.toDto(doctor);
+    }
+
 
     private String uploadImageIfPresent(MultipartFile image) throws IOException {
         return (image != null && !image.isEmpty()) ? fileUploadService.storeFile(image) : null;

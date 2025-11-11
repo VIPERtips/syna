@@ -3,6 +3,7 @@ package co.zw.blexta.syna.doctor;
 import java.io.IOException;
 import java.util.List;
 
+import co.zw.blexta.syna.filter.ClerkService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +25,25 @@ public class DoctorController {
     private final DoctorService doctorService;
     private final UserService userService;
     private final ObjectMapper objectMapper;
+    private final ClerkService clerkService;
+
+
+
+    @GetMapping("/current")
+    public ResponseEntity<ApiResponse<DoctorDto>> getCurrentDoctor(
+            @RequestHeader("Authorization") String token) throws Exception {
+        String clerkUserId = clerkService.verifyTokenAndGetUserId(token);
+        return doctorService.getDoctorByUserId(clerkUserId)
+                .map(doc -> ResponseEntity.ok(ApiResponse.<DoctorDto>builder()
+                        .success(true)
+                        .data(doc)
+                        .message("Doctor info retrieved")
+                        .build()))
+                .orElse(ResponseEntity.ok(ApiResponse.<DoctorDto>builder()
+                        .success(false)
+                        .message("No doctor request found")
+                        .build()));
+    }
 
     @PostMapping(consumes = "multipart/form-data")
     @Operation(summary = "Register a doctor", description = "Registers a new doctor account for the given user.")
@@ -81,4 +101,12 @@ public class DoctorController {
         doctorService.deleteDoctor(docId);
         return ResponseEntity.ok(new ApiResponse<>("Doctor account blocked successfully", true, null));
     }
+
+    @PutMapping("/approve/{docId}")
+    @Operation(summary = "Approve doctor account", description = "Approves a pending doctor account and updates the user role to DOCTOR.")
+    public ResponseEntity<ApiResponse<DoctorDto>> approveDoctor(@PathVariable Long docId) {
+        DoctorDto approvedDoctor = doctorService.approveDoctor(docId);
+        return ResponseEntity.ok(new ApiResponse<>("Doctor approved successfully", true, approvedDoctor));
+    }
+
 }

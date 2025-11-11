@@ -13,5 +13,6 @@ public interface DoctorService {
 	List<DoctorDto> getAllDoctorsByVerifiedAccounts();
 	List<DoctorDto> getAllDoctorsByLocation(String address);
 	void deleteDoctor(Long userId);
-	
+    DoctorDto approveDoctor(Long docId);
+    Optional<DoctorDto> getDoctorByUserId(String clerkUserId);
 }
